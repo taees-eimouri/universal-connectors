@@ -13,10 +13,11 @@ public class RegexParser implements IParser {
     private static final Logger logger = LogManager.getLogger(RegexParser.class);
 
     private static final RegexExecutor executor = new RegexExecutor();
+    private String payload;
 
     @Override
-    public String parse(String payload, String regexString) {
-        if (regexString == null) {
+    public String parse(String regexString) {
+        if (this.payload == null || regexString == null) {
             return null;
         }
         try {
@@ -27,13 +28,24 @@ public class RegexParser implements IParser {
                 return m.groupCount() > 0 ? m.group(1) : m.group();
             } else {
                 if (rr.timedOut() && logger.isDebugEnabled()) {
-                    logger.debug("Regex parse aborted due to taking too long to match -- regex: {}, event-payload: {}", pattern, payload);
+                    logger.debug("Regex parse aborted due to taking too long to match -- regex: {}, event-payload: {}",
+                            pattern, payload);
                 }
             }
         } catch (PatternSyntaxException e) {
             logger.error("The regex is invalid {}", regexString);
         }
         return null;
+    }
+
+    @Override
+    public void setPayload(String payload) {
+        this.payload = payload;
+    }
+
+    @Override
+    public boolean isValid() {
+        return true;
     }
 
 }

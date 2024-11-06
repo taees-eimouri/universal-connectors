@@ -83,16 +83,18 @@ public class CustomParserTest {
             public String getConfigFilePath() {
                 return "";
             }
+
             @Override
             public Map<String, String> getProperties() {
                 return props;
             }
         };
         cp.properties = props;
-        assertEquals("TEST", cp.getValue("whatever", PropertyConstant.DB_USER));
+        cp.parser.setPayload("whatever");
+        assertEquals("TEST", cp.getValue(PropertyConstant.DB_USER));
 
-        //Invalid regex wont cause exception
-        assertNull(cp.parse("whatever", "invalid Regex"));
+        // Invalid regex wont cause exception
+        assertNull(cp.parse("invalid Regex"));
     }
 
     @Test
@@ -106,7 +108,8 @@ public class CustomParserTest {
     public void testGetException() {
         String payload = String.format("[Exception Type ID: %s]", configValues.get(PropertyConstant.EXCEPTION_TYPE_ID));
         String sqlString = "SELECT * FROM employees";
-        ExceptionRecord exceptionRecord = customParser.getException(payload, sqlString);
+        customParser.parser.setPayload(payload);
+        ExceptionRecord exceptionRecord = customParser.getException(sqlString);
 
         assertNotNull(exceptionRecord);
         assertEquals(configValues.get(PropertyConstant.EXCEPTION_TYPE_ID), exceptionRecord.getExceptionTypeId());
@@ -122,16 +125,16 @@ public class CustomParserTest {
 
     @Test
     public void testGetValue() {
-        String value = customParser.getValue(
-                String.format("[Session ID: %s]", configValues.get(PropertyConstant.SESSION_ID)),
-                PropertyConstant.SESSION_ID);
+        customParser.parser
+                .setPayload(String.format("[Session ID: %s]", configValues.get(PropertyConstant.SESSION_ID)));
+        String value = customParser.getValue(PropertyConstant.SESSION_ID);
         assertEquals(configValues.get(PropertyConstant.SESSION_ID), value);
     }
 
     @Test
     public void testGetTimestamp() {
         String payload = "[Timestamp: 2024-08-23T15:22:35.876Z]";
-        Time time = customParser.getTimestamp(payload);
+        Time time = customParser.getTimestamp();
         assertNotNull(time);
     }
 
@@ -146,7 +149,8 @@ public class CustomParserTest {
     @Test
     public void testGetAccessor() {
         String payload = String.format("[DB User: %s]", configValues.get(PropertyConstant.DB_USER));
-        Accessor accessor = customParser.getAccessor(payload);
+        customParser.parser.setPayload(payload);
+        Accessor accessor = customParser.getAccessor();
         assertNotNull(accessor);
         assertEquals(configValues.get(PropertyConstant.DB_USER), accessor.getDbUser());
     }
@@ -374,8 +378,9 @@ public class CustomParserTest {
         properties.put(SNIFFER_PARSER, "MYSQL");
         customParser.properties = properties;
         customParser.parseUsingSniffer = true;
+        customParser.parser.setPayload("some payload");
 
-        String serverType = customParser.getServerType("some payload");
+        String serverType = customParser.getServerType();
         assertEquals("Expected server type to be MYSQL", "MYSQL", serverType);
     }
 
@@ -385,8 +390,9 @@ public class CustomParserTest {
         properties.put(DATA_TYPE_GUARDIUM_SHOULD_PARSE_SQL, "TEXT");
         customParser.properties = properties;
         customParser.parseUsingSniffer = true;
+        customParser.parser.setPayload("some payload");
 
-        String dataType = customParser.getDataType("some payload");
+        String dataType = customParser.getDataType();
         assertEquals("Expected data type to be TEXT", "TEXT", dataType);
     }
 
@@ -394,28 +400,28 @@ public class CustomParserTest {
     @Test
     public void testGetMinDstWithNullPayload() {
         String payload = "{}"; // Empty payload
-        Integer result = customParser.getMinDst(payload);
+        Integer result = customParser.getMinDst();
         assertEquals(0, result.intValue());
     }
 
     @Test
     public void testGetMinDstWithInvalidInteger() {
         String payload = String.format("{\"%s\": \"invalid\"}", MIN_DST);
-        Integer result = customParser.getMinDst(payload);
+        Integer result = customParser.getMinDst();
         assertEquals(0, result.intValue());
     }
 
     @Test
     public void testGetMinOffsetFromGMTWithNullPayload() {
         String payload = "{}"; // Empty payload
-        Integer result = customParser.getMinOffsetFromGMT(payload);
+        Integer result = customParser.getMinOffsetFromGMT();
         assertEquals(0, result.intValue());
     }
 
     @Test
     public void testGetMinOffsetFromGMTWithInvalidInteger() {
         String payload = String.format("{\"%s\": \"invalid\"}", MIN_OFFSET_FROM_GMT);
-        Integer result = customParser.getMinOffsetFromGMT(payload);
+        Integer result = customParser.getMinOffsetFromGMT();
         assertEquals(0, result.intValue()); // Cast to int to avoid ambiguity
     }
 
@@ -424,14 +430,14 @@ public class CustomParserTest {
     @Test
     public void testGetOriginalSqlCommandWithNullPayload() {
         String payload = "{}"; // Empty payload
-        String result = customParser.getOriginalSqlCommand(payload);
-        assertEquals(customParser.getSqlString(payload), result);
+        String result = customParser.getOriginalSqlCommand();
+        assertEquals(customParser.getSqlString(), result);
     }
 
     @Test
     public void testGetServerIpv6WithNullPayload() {
         String payload = "{}"; // Empty payload
-        String result = customParser.getServerIpv6(payload);
+        String result = customParser.getServerIpv6();
         assertEquals(DEFAULT_IPV6, result);
     }
 
@@ -444,7 +450,7 @@ public class CustomParserTest {
         String payload = "{}"; // No OBJECT or VERB
         String originalSQLString = "SELECT * FROM collectionA";
 
-        Data result = customParser.getData(payload, originalSQLString);
+        Data result = customParser.getData(originalSQLString);
 
         assertNotNull(result);
         assertNotNull(result.getConstruct());

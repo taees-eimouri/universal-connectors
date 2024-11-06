@@ -25,7 +25,7 @@ public abstract class CustomParser {
     private static final InetAddressValidator inetAddressValidator = InetAddressValidator.getInstance();
     protected Map<String, String> properties;
     private final ObjectMapper mapper;
-    private final IParser parser;
+    final IParser parser;
     boolean parseUsingSniffer = false;
     boolean hasSqlParsing = false;
 
@@ -40,80 +40,85 @@ public abstract class CustomParser {
         if (!isValid(payload))
             return null;
 
+        parser.setPayload(payload);
+        if (!parser.isValid())
+            return null;
+
         hasSqlParsing = SqlParser.hasSqlParsing(properties);
         parseUsingSniffer = hasSqlParsing && SqlParser.isSnifferParsing(payload);
 
-        return extractRecord(payload);
+        return extractRecord();
     }
 
-    private Record extractRecord(String payload) {
+    private Record extractRecord() {
         Record record = new Record();
 
-        record.setSessionId(getSessionId(payload));
-        record.setDbName(getDbName(payload));
-        record.setAppUserName(getAppUserName(payload));
-        String sqlString = getSqlString(payload);
-        record.setException(getException(payload, sqlString));
-        record.setAccessor(getAccessor(payload));
-        record.setSessionLocator(getSessionLocator(payload, record.getSessionId()));
-        record.setTime(getTimestamp(payload));
+        record.setSessionId(getSessionId());
+        record.setDbName(getDbName());
+        record.setAppUserName(getAppUserName());
+        String sqlString = getSqlString();
+        record.setException(getException(sqlString));
+        record.setAccessor(getAccessor());
+        record.setSessionLocator(getSessionLocator(record.getSessionId()));
+        record.setTime(getTimestamp());
 
         if (record.isException())
-            record.setData(getData(payload, sqlString));
+            record.setData(getData(sqlString));
 
         return record;
     }
 
-    protected String getValue(String payload, String fieldName) {
+    protected String getValue(String fieldName) {
         String value = properties.get(fieldName);
-        if(value == null) return null;
+        if (value == null)
+            return null;
 
         // If it is static literal we dont need custom parser
-        if(value.startsWith("{") && value.endsWith("}"))
+        if (value.startsWith("{") && value.endsWith("}"))
             return value.substring(1, value.indexOf("}"));
 
-        return parse(payload, value);
+        return parse(value);
     }
 
-    protected String parse(String payload, String key) {
-        return parser.parse(payload, key);
+    protected String parse(String key) {
+        return parser.parse(key);
     }
 
     // method to handle exception type and description
-    protected ExceptionRecord getException(String payload, String sqlString) {
-        String exceptionTypeId = getExceptionTypeId(payload); // Get the error message
+    protected ExceptionRecord getException(String sqlString) {
+        String exceptionTypeId = getExceptionTypeId(); // Get the error message
         if (exceptionTypeId.isEmpty())
             return null;
 
         ExceptionRecord exceptionRecord = new ExceptionRecord();
         exceptionRecord.setExceptionTypeId(exceptionTypeId);
-        exceptionRecord.setDescription(getExceptionDescription(payload));
+        exceptionRecord.setDescription(getExceptionDescription());
         exceptionRecord.setSqlString(sqlString);
 
         return exceptionRecord;
     }
 
-    protected String getExceptionDescription(String payload) {
+    protected String getExceptionDescription() {
         return DEFAULT_STRING;
     }
 
-    protected String getExceptionTypeId(String payload) {
-        String value = getValue(payload, EXCEPTION_TYPE_ID);
+    protected String getExceptionTypeId() {
+        String value = getValue(EXCEPTION_TYPE_ID);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getAppUserName(String payload) {
-        String value = getValue(payload, APP_USER_NAME);
+    protected String getAppUserName() {
+        String value = getValue(APP_USER_NAME);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getClientIpv6(String payload) {
-        String value = getValue(payload, CLIENT_IPV6);
+    protected String getClientIpv6() {
+        String value = getValue(CLIENT_IPV6);
         return value != null ? value : DEFAULT_IPV6;
     }
 
-    protected String getClientIp(String payload) {
-        String value = getValue(payload, CLIENT_IP);
+    protected String getClientIp() {
+        String value = getValue(CLIENT_IP);
         return value != null ? value : DEFAULT_IP;
     }
 
@@ -123,7 +128,7 @@ public abstract class CustomParser {
         return data;
     }
 
-    protected Data getData(String payload, String sqlString) {
+    protected Data getData(String sqlString) {
         if (!hasSqlParsing || parseUsingSniffer) {
             return null;
         }
@@ -131,8 +136,8 @@ public abstract class CustomParser {
         Data data = new Data();
         // If it reaches out this point it is a regex parsing and object and verb are
         // not null
-        String object = getValue(payload, OBJECT);
-        String verb = getValue(payload, VERB);
+        String object = getValue(OBJECT);
+        String verb = getValue(VERB);
         Construct construct = new Construct();
         Sentence sentence = new Sentence(verb);
         SentenceObject sentenceObject = new SentenceObject(object);
@@ -141,51 +146,51 @@ public abstract class CustomParser {
         construct.setFullSql(sqlString);
 
         data.setConstruct(construct);
-        data.setOriginalSqlCommand(getOriginalSqlCommand(payload));
+        data.setOriginalSqlCommand(getOriginalSqlCommand());
         return data;
     }
 
-    protected Boolean isIpv6(String payload) {
-        String value = getValue(payload, IS_IPV6);
+    protected Boolean isIpv6() {
+        String value = getValue(IS_IPV6);
         return Boolean.parseBoolean(value);
     }
 
-    protected Integer getMinDst(String payload) {
-        Integer value = convertToInt(MIN_DST, getValue(payload, MIN_DST));
+    protected Integer getMinDst() {
+        Integer value = convertToInt(MIN_DST, getValue(MIN_DST));
         return value != null ? value : 0;
     }
 
-    protected Integer getMinOffsetFromGMT(String payload) {
-        Integer value = convertToInt(MIN_OFFSET_FROM_GMT, getValue(payload, MIN_OFFSET_FROM_GMT));
+    protected Integer getMinOffsetFromGMT() {
+        Integer value = convertToInt(MIN_OFFSET_FROM_GMT, getValue(MIN_OFFSET_FROM_GMT));
         return value != null ? value : ZERO;
     }
 
-    protected String getOriginalSqlCommand(String payload) {
-        String value = getValue(payload, ORIGINAL_SQL_COMMAND);
-        return value != null ? value : getSqlString(payload);
+    protected String getOriginalSqlCommand() {
+        String value = getValue(ORIGINAL_SQL_COMMAND);
+        return value != null ? value : getSqlString();
     }
 
-    protected String getServerIp(String payload) {
-        String value = getValue(payload, SERVER_IP);
+    protected String getServerIp() {
+        String value = getValue(SERVER_IP);
         return value != null ? value : DEFAULT_IP;
     }
 
-    protected String getServerIpv6(String payload) {
-        String value = getValue(payload, SERVER_IPV6);
+    protected String getServerIpv6() {
+        String value = getValue(SERVER_IPV6);
         return value != null ? value : DEFAULT_IPV6;
     }
 
     // method to handle the SQL command that caused the exception
-    protected String getSqlString(String payload) {
-        String value = getValue(payload, SQL_STRING);
+    protected String getSqlString() {
+        String value = getValue(SQL_STRING);
         return value != null ? value : DEFAULT_STRING; // Set the SQL command that caused the exception
     }
 
     // In this setTimestamp method now parses the timestamp from the payload and
     // sets the timestamp, minOffsetFromGMT, and minDst fields in the Time object of
     // the Record. If the timestamp is not available, it sets default values.
-    protected Time getTimestamp(String payload) {
-        String value = getValue(payload, TIMESTAMP);
+    protected Time getTimestamp() {
+        String value = getValue(TIMESTAMP);
         Time time;
         if (value != null) {
             time = parseTimestamp(value);
@@ -195,7 +200,7 @@ public abstract class CustomParser {
         return time;
     }
 
-    protected SessionLocator getSessionLocator(String payload, String sessionId) {
+    protected SessionLocator getSessionLocator(String sessionId) {
         SessionLocator sessionLocator = new SessionLocator();
 
         // set default values
@@ -205,25 +210,25 @@ public abstract class CustomParser {
         sessionLocator.setClientIp(DEFAULT_IP);
         sessionLocator.setServerIp(DEFAULT_IP);
 
-        boolean isIpV6 = isIpv6(payload);
-        String clientIp = getClientIp(payload);
-        String clientIpv6 = getClientIpv6(payload);
+        boolean isIpV6 = isIpv6();
+        String clientIp = getClientIp();
+        String clientIpv6 = getClientIpv6();
         if (isIpV6 && inetAddressValidator.isValidInet6Address(clientIpv6)) {
             // If client IP is IPv6, set both client and server to IPv6
             sessionLocator.setIpv6(true);
             sessionLocator.setClientIpv6(clientIpv6);
-            sessionLocator.setServerIpv6(getServerIpv6(payload)); // Set server IP to default IPv6
+            sessionLocator.setServerIpv6(getServerIpv6()); // Set server IP to default IPv6
 
         } else if (inetAddressValidator.isValidInet4Address(clientIp)) {
             // If client IP is IPv4, set both client and server IP to IPv4
             sessionLocator.setClientIp(clientIp);
             // Cloud Databases: Set server IP to 0.0.0.0
-            sessionLocator.setServerIp(getServerIp(payload));
+            sessionLocator.setServerIp(getServerIp());
         }
 
         // Set port numbers
-        sessionLocator.setClientPort(getClientPort(sessionId, payload));
-        sessionLocator.setServerPort(getServerPort(sessionId, payload));
+        sessionLocator.setClientPort(getClientPort(sessionId));
+        sessionLocator.setServerPort(getServerPort(sessionId));
 
         return sessionLocator;
     }
@@ -238,109 +243,109 @@ public abstract class CustomParser {
 
     // Updated method to check accessor.dataType and populate original_sql_command
     // or construct
-    protected Accessor getAccessor(String payload) {
+    protected Accessor getAccessor() {
         Accessor accessor = new Accessor();
 
-        accessor.setServiceName(getServiceName(payload));
-        accessor.setDbUser(getDbUser(payload));
-        accessor.setDbProtocolVersion(getDbProtocolVersion(payload));
-        accessor.setDbProtocol(getDbProtocol(payload));
-        accessor.setServerType(getServerType(payload));
-        accessor.setServerOs(getServerOs(payload));
-        accessor.setServerDescription(getServerDescription(payload));
-        accessor.setServerHostName(getServerHostName(payload));
-        accessor.setClientHostName(getClientHostName(payload));
-        accessor.setClient_mac(getClientMac(payload));
-        accessor.setClientOs(getClientOs(payload));
-        accessor.setCommProtocol(getCommProtocol(payload));
-        accessor.setOsUser(getOsUser(payload));
-        accessor.setSourceProgram(getSourceProgram(payload));
-        accessor.setLanguage(getLanguage(payload));
-        accessor.setDataType(getDataType(payload));
+        accessor.setServiceName(getServiceName());
+        accessor.setDbUser(getDbUser());
+        accessor.setDbProtocolVersion(getDbProtocolVersion());
+        accessor.setDbProtocol(getDbProtocol());
+        accessor.setServerType(getServerType());
+        accessor.setServerOs(getServerOs());
+        accessor.setServerDescription(getServerDescription());
+        accessor.setServerHostName(getServerHostName());
+        accessor.setClientHostName(getClientHostName());
+        accessor.setClient_mac(getClientMac());
+        accessor.setClientOs(getClientOs());
+        accessor.setCommProtocol(getCommProtocol());
+        accessor.setOsUser(getOsUser());
+        accessor.setSourceProgram(getSourceProgram());
+        accessor.setLanguage(getLanguage());
+        accessor.setDataType(getDataType());
 
         return accessor;
     }
 
-    protected String getServiceName(String payload) {
-        String value = getValue(payload, SERVICE_NAME);
+    protected String getServiceName() {
+        String value = getValue(SERVICE_NAME);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getDbUser(String payload) {
-        String value = getValue(payload, DB_USER);
+    protected String getDbUser() {
+        String value = getValue(DB_USER);
         return value != null ? value : DATABASE_NOT_AVAILABLE;
     }
 
-    protected String getDbName(String payload) {
-        String value = getValue(payload, DB_NAME);
+    protected String getDbName() {
+        String value = getValue(DB_NAME);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getDbProtocol(String payload) {
-        String value = getValue(payload, DB_PROTOCOL);
+    protected String getDbProtocol() {
+        String value = getValue(DB_PROTOCOL);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getServerOs(String payload) {
-        String value = getValue(payload, SERVER_OS);
+    protected String getServerOs() {
+        String value = getValue(SERVER_OS);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getClientOs(String payload) {
-        String value = getValue(payload, CLIENT_OS);
+    protected String getClientOs() {
+        String value = getValue(CLIENT_OS);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getClientHostName(String payload) {
-        String value = getValue(payload, CLIENT_HOSTNAME);
+    protected String getClientHostName() {
+        String value = getValue(CLIENT_HOSTNAME);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getCommProtocol(String payload) {
-        String value = getValue(payload, COMM_PROTOCOL);
+    protected String getCommProtocol() {
+        String value = getValue(COMM_PROTOCOL);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getDbProtocolVersion(String payload) {
-        String value = getValue(payload, DB_PROTOCOL_VERSION);
+    protected String getDbProtocolVersion() {
+        String value = getValue(DB_PROTOCOL_VERSION);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getOsUser(String payload) {
-        String value = getValue(payload, OS_USER);
+    protected String getOsUser() {
+        String value = getValue(OS_USER);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getSourceProgram(String payload) {
-        String value = getValue(payload, SOURCE_PROGRAM);
+    protected String getSourceProgram() {
+        String value = getValue(SOURCE_PROGRAM);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getClientMac(String payload) {
-        String value = getValue(payload, CLIENT_MAC);
+    protected String getClientMac() {
+        String value = getValue(CLIENT_MAC);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getServerDescription(String payload) {
-        String value = getValue(payload, SERVER_DESCRIPTION);
+    protected String getServerDescription() {
+        String value = getValue(SERVER_DESCRIPTION);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getServerHostName(String payload) {
-        String value = getValue(payload, SERVER_HOSTNAME);
+    protected String getServerHostName() {
+        String value = getValue(SERVER_HOSTNAME);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getServerType(String payload) {
+    protected String getServerType() {
         // this has been validated before
         if (parseUsingSniffer)
-            return SqlParser.getServerType((String) properties.get(SNIFFER_PARSER));
+            return SqlParser.getServerType(properties.get(SNIFFER_PARSER));
 
-        String value = getValue(payload, SERVER_TYPE);
+        String value = getValue(SERVER_TYPE);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected String getLanguage(String payload) {
+    protected String getLanguage() {
         // this has been validated before
         if (parseUsingSniffer)
             return (String) properties.get(SNIFFER_PARSER);
@@ -348,31 +353,31 @@ public abstract class CustomParser {
         return Accessor.LANGUAGE_FREE_TEXT_STRING;
     }
 
-    protected String getDataType(String payload) {
+    protected String getDataType() {
         if (parseUsingSniffer)
             return (String) properties.get(DATA_TYPE_GUARDIUM_SHOULD_PARSE_SQL);
 
         return DATA_TYPE_GUARDIUM_SHOULD_NOT_PARSE_SQL;
     }
 
-    protected String getSessionId(String payload) {
-        String value = getValue(payload, SESSION_ID);
+    protected String getSessionId() {
+        String value = getValue(SESSION_ID);
         return value != null ? value : DEFAULT_STRING;
     }
 
-    protected Integer getClientPort(String sessionId, String payload) {
+    protected Integer getClientPort(String sessionId) {
         if (sessionId.isEmpty())
             return PORT_DEFAULT;
 
-        Integer value = convertToInt(CLIENT_PORT, getValue(payload, CLIENT_PORT));
+        Integer value = convertToInt(CLIENT_PORT, getValue(CLIENT_PORT));
         return value != null ? value : PORT_DEFAULT;
     }
 
-    protected Integer getServerPort(String sessionId, String payload) {
+    protected Integer getServerPort(String sessionId) {
         if (sessionId.isEmpty())
             return PORT_DEFAULT;
 
-        Integer value = convertToInt(SERVER_PORT, getValue(payload, SERVER_PORT));
+        Integer value = convertToInt(SERVER_PORT, getValue(SERVER_PORT));
         return value != null ? value : PORT_DEFAULT;
     }
 
