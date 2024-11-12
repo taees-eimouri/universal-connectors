@@ -5,5 +5,5 @@ public interface IParser {
 
     void setPayload(String payload);
 
-    boolean isValid();
+    boolean isInvalid();
 }

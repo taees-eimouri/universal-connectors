@@ -22,7 +22,7 @@ public class JsonParser implements IParser {
     }
 
     @Override
-    public boolean isValid() {
+    public boolean isInvalid() {
         return extractedProperties == null || extractedProperties.isEmpty();
     }
 }

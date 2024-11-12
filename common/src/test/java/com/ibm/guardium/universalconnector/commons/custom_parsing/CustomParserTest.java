@@ -1,6 +1,7 @@
 package com.ibm.guardium.universalconnector.commons.custom_parsing;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ibm.guardium.universalconnector.commons.custom_parsing.excepton.InvalidConfigurationException;
 import com.ibm.guardium.universalconnector.commons.structures.*;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.junit.BeforeClass;
@@ -25,7 +26,7 @@ public class CustomParserTest {
     private InetAddressValidator inetAddressValidator;
 
     @BeforeClass
-    public static void setUp() throws IOException {
+    public static void setUp() throws IOException, InvalidConfigurationException {
         // Initialize the custom parser
         customParser = new CustomParser(ParserFactory.ParserType.regex) {
 
@@ -46,6 +47,28 @@ public class CustomParserTest {
         configValues = objectMapper.readValue(new File(customParser.getConfigFilePath()), Map.class);
         // Initialize properties
         customParser.properties = configValues;
+    }
+
+    @Test
+    public void invalidConfigFileTest() {
+        try {
+            new CustomParser(ParserFactory.ParserType.regex) {
+
+                @Override
+                public String getConfigFilePath() {
+                    // Return the path to your configuration file
+                    return "src/test/resources/empty.json";
+                }
+
+                @Override
+                public Record parseRecord(String payload) {
+                    return super.parseRecord(payload);
+                }
+            };
+            fail("Expected InvalidConfigurationException to be thrown");
+        } catch (InvalidConfigurationException e) {
+            assertEquals("The configuration file is invalid.", e.getMessage());
+        }
     }
 
     @Test
@@ -75,7 +98,7 @@ public class CustomParserTest {
     }
 
     @Test
-    public void testGetStaticValue() {
+    public void testGetStaticValue() throws InvalidConfigurationException {
         Map<String, String> props = new HashMap<>();
         props.put(PropertyConstant.DB_USER, "{TEST}");
         CustomParser cp = new CustomParser(ParserFactory.ParserType.regex) {
@@ -283,34 +306,31 @@ public class CustomParserTest {
         validProperties.put(VERB, "SELECT");
 
         customParser.properties = validProperties;
-        assertTrue("Expected isValid to return true for valid properties", customParser.isValid("some payload"));
+        assertTrue("Expected isValid to return true for valid properties", customParser.isValid());
 
         // Test case 2: Invalid parsing type
         validProperties.put(PARSING_TYPE, "INVALID_TYPE");
-        assertFalse("Expected isValid to return false for invalid parsing type", customParser.isValid("some payload"));
+        assertFalse("Expected isValid to return false for invalid parsing type", customParser.isValid());
 
         // Test case 3: Missing object
         validProperties.put(PARSING_TYPE, "REGEX");
         validProperties.remove(OBJECT);
-        assertFalse("Expected isValid to return false for missing object", customParser.isValid("some payload"));
+        assertFalse("Expected isValid to return false for missing object", customParser.isValid());
 
         // Test case 4: Missing verb
         validProperties.put(OBJECT, "table");
         validProperties.remove(VERB);
-        assertFalse("Expected isValid to return false for missing verb", customParser.isValid("some payload"));
+        assertFalse("Expected isValid to return false for missing verb", customParser.isValid());
 
         // Test case 5: SQL parsing inactive
         validProperties.put(SQL_PARSING_ACTIVE, "false");
         assertTrue("Expected isValid to return true when SQL parsing is inactive",
-                customParser.isValid("some payload"));
+                customParser.isValid());
 
         // Test case 6: Properties is null
         customParser.properties = null;
-        assertFalse("Expected isValid to return false when properties are null", customParser.isValid("some payload"));
+        assertFalse("Expected isValid to return false when properties are null", customParser.isValid());
 
-        // Test case 7: Payload is null
-        customParser.properties = validProperties; // Reset properties to valid
-        assertFalse("Expected isValid to return false when payload is null", customParser.isValid(null));
     }
 
     @Test
@@ -455,6 +475,28 @@ public class CustomParserTest {
         assertNotNull(result);
         assertNotNull(result.getConstruct());
         assertEquals(originalSQLString, result.getConstruct().getFullSql());
+    }
+
+    @Test
+    public void testJson() throws InvalidConfigurationException {
+        String payload = "{\"hostIdentifier\":\"7d058e67620c\",\"calendarTime\":\"Sun Apr 14 16:17:14 2019 UTC\","
+                + "\"unixTime\":\"1555258634\","
+                + "\"severity\":\"0\",\"filename\":\"aws_kinesis.cpp\",\"line\":\"142\",\"message\":\"Successfully sent 6 of 6 logs to Kinesis\","
+                + "\"version\":\"2.7.0\",\"decorations\":{\"customer_id\":\"1\",\"host_uuid\":\"33C9A321-088E-43FE-83D7-4C6A4D134937\",\"hostname\""
+                + ":\"7d058e67620c\"},\"log_type\":\"status\"}";
+
+        CustomParser cp = new CustomParser(ParserFactory.ParserType.json) {
+            @Override
+            public String getConfigFilePath() {
+                // Return the path to your configuration file
+                return "src/test/resources/jsonConfig.json";
+            }
+        };
+
+        Record record = cp.parseRecord(payload);
+
+        assertEquals("7d058e67620c", record.getSessionId());
+        assertEquals("PostgreSQL", record.getAccessor().getServerType());
     }
 
 }

@@ -119,13 +119,13 @@ public class JsonUtil {
      *
      * <pre>
      * Returns a map representing the members of the supplied json String. The map
-     * is String->JsonElement. This allows the caller to decide how they want handle
+     * is String to JsonElement. This allows the caller to decide how they want handle
      * each member of the map, JsonElement gives methods to check the type and handle
      * type conversions.
      * </pre>
      *
      * @param jsonString jsonString The jsonString
-     * @return A map of String->JsonElement
+     * @return A map of String to JsonElement
      */
     public Map<String, JsonElement> getAllMembersAsMap(String jsonString) {
         Map<String, JsonElement> members = new LinkedHashMap<>();

@@ -44,8 +44,8 @@ public class RegexParser implements IParser {
     }
 
     @Override
-    public boolean isValid() {
-        return true;
+    public boolean isInvalid() {
+        return false;
     }
 
 }
