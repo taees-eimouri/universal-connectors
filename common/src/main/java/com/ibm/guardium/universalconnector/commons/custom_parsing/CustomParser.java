@@ -26,8 +26,8 @@ public abstract class CustomParser {
     protected Map<String, String> properties;
     private final ObjectMapper mapper;
     private final IParser parser;
-    boolean parseUsingSniffer = false;
-    boolean hasSqlParsing = false;
+    protected boolean parseUsingSniffer = false;
+    protected boolean hasSqlParsing = false;
 
     public CustomParser(ParserFactory.ParserType parserType) {
         parser = new ParserFactory().getParser(parserType);
@@ -41,7 +41,7 @@ public abstract class CustomParser {
             return null;
 
         hasSqlParsing = SqlParser.hasSqlParsing(properties);
-        parseUsingSniffer = hasSqlParsing && SqlParser.isSnifferParsing(payload);
+        parseUsingSniffer = hasSqlParsing && SqlParser.isSnifferParsing(properties.get(PARSING_TYPE));
 
         return extractRecord(payload);
     }
@@ -58,7 +58,7 @@ public abstract class CustomParser {
         record.setSessionLocator(getSessionLocator(payload, record.getSessionId()));
         record.setTime(getTimestamp(payload));
 
-        if (record.isException())
+        if (!record.isException())
             record.setData(getData(payload, sqlString));
 
         return record;
