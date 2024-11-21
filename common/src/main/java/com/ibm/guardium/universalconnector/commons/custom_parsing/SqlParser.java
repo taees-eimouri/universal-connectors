@@ -41,7 +41,7 @@ public class SqlParser {
     }
 
     static ValidityCase isValid(Map<String, String> properties, boolean hasSqlParsing, boolean parseUsingSniffer,
-            boolean parseUsingCustomParser) {
+            boolean parseUsingRegex) {
         if (!hasSqlParsing)
             return ValidityCase.VALID;
 
@@ -53,7 +53,7 @@ public class SqlParser {
             String snifferParser = properties.get(SNIFFER_PARSER);
             if (snifferParser == null || !validSnifferParsers.containsKey(snifferParser))
                 return ValidityCase.INVALID_SNIFFER_PARSER;
-        } else if (parseUsingCustomParser) {
+        } else if (parseUsingRegex) {
             String object = properties.get(OBJECT);
             if (object == null || object.isEmpty())
                 return ValidityCase.NULL_OBJECT;
@@ -82,17 +82,17 @@ public class SqlParser {
 
     enum ValidityCase {
         VALID("The SQL Parsing is valid"),
-        INVALID_PARSING_TYPE("Parsing type can only be CUSTOM_PARSER (REGEX, JSON) or SNIFFER"),
+        INVALID_PARSING_TYPE("Parsing type can only be CUSTOM_PARSER (for Regex and Json) or SNIFFER"),
         INVALID_SNIFFER_PARSER("Sniffer Parser is invalid."),
-        NULL_OBJECT("The object field ca
-        not be null."),
-        NULL_VERB("The verb fild cannot be
-    
+        NULL_OBJECT("The object field cannot be null."),
+        NULL_VERB("The verb field cannot be null.");
 
-    
-        dityCase(String des
-     
- 
+        public final String description;
+
+        ValidityCase(String description) {
+            this.description = description;
+        }
+
         public String getDescription() {
             return description;
         }
