@@ -27,8 +27,9 @@ public abstract class CustomParser {
     protected Map<String, String> properties;
     private ObjectMapper mapper;
     IParser parser;
-    boolean parseUsingSniffer = false;
-    boolean hasSqlParsing = false;
+    protected boolean parseUsingSniffer = false;
+    protected boolean hasSqlParsing = false;
+    protected boolean parseUsingCustomParser = false;
 
     public CustomParser(ParserFactory.ParserType parserType) throws InvalidConfigurationException {
         parser = new ParserFactory().getParser(parserType);
@@ -49,10 +50,6 @@ public abstract class CustomParser {
         parser.setPayload(payload);
         if (parser.isInvalid())
             return null;
-
-        hasSqlParsing = SqlParser.hasSqlParsing(properties);
-        parseUsingSniffer = hasSqlParsing && SqlParser.isSnifferParsing(payload);
-
         return extractRecord();
     }
 
@@ -415,7 +412,12 @@ public abstract class CustomParser {
             return false;
         }
 
-        SqlParser.ValidityCase isValid = SqlParser.isValid(properties);
+        hasSqlParsing = SqlParser.hasSqlParsing(properties);
+        parseUsingSniffer = hasSqlParsing && SqlParser.isSnifferParsing(properties);
+        parseUsingCustomParser = hasSqlParsing && SqlParser.isCustomParsing(properties);
+
+        SqlParser.ValidityCase isValid = SqlParser.isValid(properties, hasSqlParsing, parseUsingSniffer,
+                parseUsingCustomParser);
         if (!isValid.equals(SqlParser.ValidityCase.VALID)) {
             logger.error(isValid.getDescription());
             return false;

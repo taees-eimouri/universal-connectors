@@ -5,7 +5,7 @@ import java.util.*;
 import static com.ibm.guardium.universalconnector.commons.custom_parsing.PropertyConstant.*;
 
 public class SqlParser {
-    static List<String> validParsers = new ArrayList<>(Arrays.asList("REGEX", "SNIFFER"));
+    static List<String> validParsers = new ArrayList<>(Arrays.asList("CUSTOM_PARSER", "SNIFFER", "JAVA"));
     static Map<String, String> validSnifferParsers;
 
     static {
@@ -36,24 +36,24 @@ public class SqlParser {
         validSnifferParsers = Collections.unmodifiableMap(map);
     }
 
-    public static String getServerType(String language) {
+    static String getServerType(String language) {
         return validSnifferParsers.get(language);
     }
 
-    public static ValidityCase isValid(Map<String, String> properties) {
-        boolean active = hasSqlParsing(properties);
-        if (!active)
+    static ValidityCase isValid(Map<String, String> properties, boolean hasSqlParsing, boolean parseUsingSniffer,
+            boolean parseUsingCustomParser) {
+        if (!hasSqlParsing)
             return ValidityCase.VALID;
 
         String parsingType = properties.get(PARSING_TYPE);
         if (parsingType == null || !validParsers.contains(parsingType))
             return ValidityCase.INVALID_PARSING_TYPE;
 
-        if (isSnifferParsing(parsingType)) {
+        if (parseUsingSniffer) {
             String snifferParser = properties.get(SNIFFER_PARSER);
             if (snifferParser == null || !validSnifferParsers.containsKey(snifferParser))
                 return ValidityCase.INVALID_SNIFFER_PARSER;
-        } else {
+        } else if (parseUsingCustomParser) {
             String object = properties.get(OBJECT);
             if (object == null || object.isEmpty())
                 return ValidityCase.NULL_OBJECT;
@@ -70,23 +70,29 @@ public class SqlParser {
         return Boolean.parseBoolean(properties.get(SQL_PARSING_ACTIVE));
     }
 
-    public static boolean isSnifferParsing(String parsingType) {
-        return parsingType.equalsIgnoreCase("SNIFFER");
+    static boolean isSnifferParsing(Map<String, String> properties) {
+        String parsingType = properties.get(PARSING_TYPE);
+        return parsingType != null && parsingType.equalsIgnoreCase("SNIFFER");
     }
 
-    public enum ValidityCase {
+    static boolean isCustomParsing(Map<String, String> properties) {
+        String parsingType = properties.get(PARSING_TYPE);
+        return parsingType != null && parsingType.equalsIgnoreCase("CUSTOM_PARSER");
+    }
+
+    enum ValidityCase {
         VALID("The SQL Parsing is valid"),
-        INVALID_PARSING_TYPE("Parsing type can only be REGEX or SNIFFER"),
+        INVALID_PARSING_TYPE("Parsing type can only be CUSTOM_PARSER (REGEX, JSON) or SNIFFER"),
         INVALID_SNIFFER_PARSER("Sniffer Parser is invalid."),
-        NULL_OBJECT("The object field cannot be null."),
-        NULL_VERB("The verb field cannot be null.");
+        NULL_OBJECT("The object field ca
+        not be null."),
+        NULL_VERB("The verb fild cannot be
+    
 
-        public final String description;
-
-        ValidityCase(String description) {
-            this.description = description;
-        }
-
+    
+        dityCase(String des
+     
+ 
         public String getDescription() {
             return description;
         }
