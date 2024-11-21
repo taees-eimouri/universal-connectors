@@ -395,7 +395,7 @@ public class CustomParserTest {
 
         // Test getDescription for each ValidityCase
         assertEquals("The SQL Parsing is valid", SqlParser.ValidityCase.VALID.getDescription());
-        assertEquals("Parsing type can only be CUSTOM_PARSER (REGEX, JSON) or SNIFFER",
+        assertEquals("Parsing type can only be CUSTOM_PARSER (for Regex and Json) or SNIFFER",
                 SqlParser.ValidityCase.INVALID_PARSING_TYPE.getDescription());
         assertEquals("Sniffer Parser is invalid.", SqlParser.ValidityCase.INVALID_SNIFFER_PARSER.getDescription());
         assertEquals("The object field cannot be null.", SqlParser.ValidityCase.NULL_OBJECT.getDescription());
