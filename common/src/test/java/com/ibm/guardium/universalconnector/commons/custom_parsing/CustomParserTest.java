@@ -3,10 +3,8 @@ package com.ibm.guardium.universalconnector.commons.custom_parsing;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ibm.guardium.universalconnector.commons.custom_parsing.excepton.InvalidConfigurationException;
 import com.ibm.guardium.universalconnector.commons.structures.*;
-import org.apache.commons.validator.routines.InetAddressValidator;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mock;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,9 +19,6 @@ public class CustomParserTest {
 
     private static CustomParser customParser;
     private static Map<String, String> configValues;
-
-    @Mock
-    private InetAddressValidator inetAddressValidator;
 
     @BeforeClass
     public static void setUp() throws IOException, InvalidConfigurationException {
@@ -87,9 +82,9 @@ public class CustomParserTest {
 
         assertNotNull(record);
         assertEquals(configValues.get(PropertyConstant.SESSION_ID), record.getSessionId());
-        assertEquals(Integer.parseInt((String) configValues.get(PropertyConstant.CLIENT_PORT)),
+        assertEquals(Integer.parseInt(configValues.get(PropertyConstant.CLIENT_PORT)),
                 record.getSessionLocator().getClientPort());
-        assertEquals(Integer.parseInt((String) configValues.get(PropertyConstant.SERVER_PORT)),
+        assertEquals(Integer.parseInt(configValues.get(PropertyConstant.SERVER_PORT)),
                 record.getSessionLocator().getServerPort());
         assertEquals(configValues.get(PropertyConstant.DB_USER), record.getAccessor().getDbUser());
         assertEquals(configValues.get(PropertyConstant.SERVER_TYPE), record.getAccessor().getServerType());
@@ -142,7 +137,7 @@ public class CustomParserTest {
     @Test
     public void testConvertToInt() {
         assertEquals(Integer.valueOf(53422), customParser.convertToInt(PropertyConstant.CLIENT_PORT,
-                (String) configValues.get(PropertyConstant.CLIENT_PORT)));
+                configValues.get(PropertyConstant.CLIENT_PORT)));
         assertNull(customParser.convertToInt(PropertyConstant.CLIENT_PORT, "invalid"));
     }
 
@@ -156,7 +151,6 @@ public class CustomParserTest {
 
     @Test
     public void testGetTimestamp() {
-        String payload = "[Timestamp: 2024-08-23T15:22:35.876Z]";
         Time time = customParser.getTimestamp();
         assertNotNull(time);
     }
@@ -426,47 +420,38 @@ public class CustomParserTest {
         assertEquals("Expected data type to be TEXT", "TEXT", dataType);
     }
 
-    // ---- getMinDst() and getMinOffsetFromGMT() ---------//
     @Test
     public void testGetMinDstWithNullPayload() {
-        String payload = "{}"; // Empty payload
         Integer result = customParser.getMinDst();
         assertEquals(0, result.intValue());
     }
 
     @Test
     public void testGetMinDstWithInvalidInteger() {
-        String payload = String.format("{\"%s\": \"invalid\"}", MIN_DST);
         Integer result = customParser.getMinDst();
         assertEquals(0, result.intValue());
     }
 
     @Test
     public void testGetMinOffsetFromGMTWithNullPayload() {
-        String payload = "{}"; // Empty payload
         Integer result = customParser.getMinOffsetFromGMT();
         assertEquals(0, result.intValue());
     }
 
     @Test
     public void testGetMinOffsetFromGMTWithInvalidInteger() {
-        String payload = String.format("{\"%s\": \"invalid\"}", MIN_OFFSET_FROM_GMT);
         Integer result = customParser.getMinOffsetFromGMT();
         assertEquals(0, result.intValue()); // Cast to int to avoid ambiguity
     }
 
-    // -----------------------------------//
-
     @Test
     public void testGetOriginalSqlCommandWithNullPayload() {
-        String payload = "{}"; // Empty payload
         String result = customParser.getOriginalSqlCommand();
         assertEquals(customParser.getSqlString(), result);
     }
 
     @Test
     public void testGetServerIpv6WithNullPayload() {
-        String payload = "{}"; // Empty payload
         String result = customParser.getServerIpv6();
         assertEquals(DEFAULT_IPV6, result);
     }
@@ -477,7 +462,6 @@ public class CustomParserTest {
         customParser.hasSqlParsing = true;
         customParser.parseUsingSniffer = false; // Ensure sniffer parsing is disabled
 
-        String payload = "{}"; // No OBJECT or VERB
         String originalSQLString = "SELECT * FROM collectionA";
 
         Data result = customParser.getData(originalSQLString);
@@ -508,5 +492,4 @@ public class CustomParserTest {
         assertEquals("7d058e67620c", record.getSessionId());
         assertEquals("PostgreSQL", record.getAccessor().getServerType());
     }
-
 }

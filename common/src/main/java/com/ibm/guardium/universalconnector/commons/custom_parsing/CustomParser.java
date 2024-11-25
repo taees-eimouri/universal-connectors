@@ -8,7 +8,6 @@ import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.ZonedDateTime;
@@ -25,7 +24,7 @@ public abstract class CustomParser {
     private static final Logger logger = LogManager.getLogger(CustomParser.class);
     private static final InetAddressValidator inetAddressValidator = InetAddressValidator.getInstance();
     protected Map<String, String> properties;
-    private ObjectMapper mapper;
+    private final ObjectMapper mapper;
     IParser parser;
     protected boolean parseUsingSniffer = false;
     protected boolean hasSqlParsing = false;
@@ -351,14 +350,14 @@ public abstract class CustomParser {
     protected String getLanguage() {
         // this has been validated before
         if (parseUsingSniffer)
-            return (String) properties.get(SNIFFER_PARSER);
+            return properties.get(SNIFFER_PARSER);
 
         return Accessor.LANGUAGE_FREE_TEXT_STRING;
     }
 
     protected String getDataType() {
         if (parseUsingSniffer)
-            return (String) properties.get(DATA_TYPE_GUARDIUM_SHOULD_PARSE_SQL);
+            return properties.get(DATA_TYPE_GUARDIUM_SHOULD_PARSE_SQL);
 
         return DATA_TYPE_GUARDIUM_SHOULD_NOT_PARSE_SQL;
     }
