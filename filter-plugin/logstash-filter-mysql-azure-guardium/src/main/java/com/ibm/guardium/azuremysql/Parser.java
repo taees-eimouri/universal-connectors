@@ -46,6 +46,7 @@ public class Parser {
 	 * @return
 	 * @throws Exception
 	 */
+	
 	public static Record parseRecord(final JsonObject data) throws Exception {
 		Record record = new Record();
 		try {
